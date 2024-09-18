@@ -24,8 +24,7 @@ enum Status {
 }
 
 enum Method {
-  OVO
-  Gopay
+  QRIS
   Transfer_bank
 }
 
@@ -36,6 +35,8 @@ model Pelanggan {
   email         String      @unique @default("")
   nomor_telp    String      @default("")
   jenis_kelamin Jk          @default(Laki_laki)
+  createdAt     DateTime    @default(now())
+  updateAt      DateTime    @updatedAt
   Transaksi     Transaksi[]
 }
 
@@ -67,7 +68,7 @@ model Transaksi {
   idAdmin           Int?
   admin             Admin?             @relation(fields: [idAdmin], references: [id])
   status            Status             @default(Belum_Lunas)
-  metode_pembayaran Method             @default(Gopay)
+  metode_pembayaran Method             @default(QRIS)
   total_bayar       Int                @default(0)
   tanggal_transaksi DateTime           @default(now())
   Detail_Transaksi  Detail_Transaksi[]

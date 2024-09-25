@@ -30,6 +30,7 @@ enum Method {
 
 model Pelanggan {
   id            Int         @id @default(autoincrement())
+  uuid          String      @default("")
   username      String      @default("")
   password      String      @default("")
   email         String      @unique @default("")
@@ -42,6 +43,7 @@ model Pelanggan {
 
 model Admin {
   id        Int         @id @default(autoincrement())
+  uuid      String      @default("")
   username  String      @default("")
   password  String      @default("")
   Transaksi Transaksi[]
@@ -49,6 +51,7 @@ model Admin {
 
 model Game {
   id               Int                @id @default(autoincrement())
+  uuid             String             @default("")
   name             String             @default("")
   gambar           String             @default("")
   video            String             @default("")
@@ -63,6 +66,7 @@ model Game {
 
 model Transaksi {
   id                Int                @id @default(autoincrement())
+  uuid              String             @default("")
   idPelanggan       Int?
   pelanggan         Pelanggan?         @relation(fields: [idPelanggan], references: [id])
   idAdmin           Int?
@@ -75,6 +79,7 @@ model Transaksi {
 }
 
 model Detail_Transaksi {
+  uuid        String     @default("")
   id          Int        @id @default(autoincrement())
   idTransaski Int?
   transaksi   Transaksi? @relation(fields: [idTransaski], references: [id])

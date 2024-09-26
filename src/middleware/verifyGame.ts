@@ -13,6 +13,18 @@ const addDataSchema = Joi.object({
     video: Joi.allow().optional(),
 })
 
+const editDataSchema = Joi.object({
+    name: Joi.string().optional(),
+    harga: Joi.number().min(0).optional(),
+    developer: Joi.string().optional(),
+    deskripsi: Joi.string().optional(),
+    genre: Joi.string().optional(),
+    download_link: Joi.string().optional(),
+    gambar: Joi.allow().optional(),
+    video: Joi.allow().optional(),
+})
+
+
 export const verifyAddGame = (req: Request, res: Response, next: NextFunction) => {
     //memvalidasi request body dan mengambil error 
     const { error } = addDataSchema.validate(req.body, { abortEarly: false })
@@ -26,21 +38,6 @@ export const verifyAddGame = (req: Request, res: Response, next: NextFunction) =
     }
     return next()
 }
-
-
-
-
-
-const editDataSchema = Joi.object({
-    name: Joi.string().optional(),
-    harga: Joi.number().min(0).optional(),
-    developer: Joi.string().optional(),
-    deskripsi: Joi.string().optional(),
-    genre: Joi.string().optional(),
-    download_link: Joi.string().optional(),
-    gambar: Joi.allow().optional(),
-    video: Joi.allow().optional(),
-})
 
 export const verifyeditGame = (req: Request, res: Response, next: NextFunction) => {
     //memvalidasi request body dan mengambil error 

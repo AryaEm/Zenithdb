@@ -91,3 +91,77 @@ export const editGame = async (req: Request, res: Response) => {
             .status(400)
     }
 }
+
+
+export const deleteGeme = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params //Memilih id dari menu yang ingin di hapus melalui parameter
+
+        // Mencari menu berdasarkan id
+        const findGame = await prisma.game.findFirst({ where: { id: Number(id) } });
+        if (!findGame) {
+            return res.status(404).json({
+                status: 'error lee',
+                message: "Game tidak ditemukan"
+            });
+        }
+
+        // Menghapus menu
+        await prisma.game.delete({
+            where: { id: Number(id) }
+        });
+
+        return res.json({
+            status: 'Alhamdulillah ga error',
+            message: 'Game telah dihapus'
+        }).status(200);
+    } catch (error) {
+        return res
+            .json({
+                status: false,
+                message: `Error saat menghapus Game ${error}`
+            })
+            .status(400);
+    }
+}
+
+export const getTotalGames = async (req: Request, res: Response) => {
+    try {
+        const total = await prisma.game.count();
+        return res.json({
+            total: `Gamenya ada ${total} kakk`,
+        }).status(200);
+    } catch (error) {
+        return res
+            .json({
+                status: false,
+                message: `duh error ${error}`
+            })
+            .status(400);
+    }
+}
+
+export const getGameById = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const menu = await prisma.game.findFirst({ where: { id: Number(id) } });
+        if (!menu)
+            return res.status(404).json({
+                status: false,
+                message: "Game tidak ditemukan"
+            });
+
+        return res.json({
+            status: 'Nih Game',
+            data: menu,
+            message: 'Detail Game berhasil diambil'
+        }).status(200);
+    } catch (error) {
+        return res
+            .json({
+                status: false,
+                message: `Error: ${error}`
+            })
+            .status(400);
+    }
+}

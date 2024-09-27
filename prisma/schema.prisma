@@ -61,6 +61,8 @@ model Game {
   genre            String             @default("")
   tahun_rilis      DateTime           @default(now())
   download_link    String             @default("")
+  createdAt        DateTime           @default(now())
+  updateAt         DateTime           @updatedAt
   Detail_Transaksi Detail_Transaksi[]
 }
 
@@ -75,6 +77,8 @@ model Transaksi {
   metode_pembayaran Method             @default(QRIS)
   total_bayar       Int                @default(0)
   tanggal_transaksi DateTime           @default(now())
+  createdAt         DateTime           @default(now())
+  updateAt          DateTime           @updatedAt
   Detail_Transaksi  Detail_Transaksi[]
 }
 
@@ -85,4 +89,6 @@ model Detail_Transaksi {
   transaksi   Transaksi? @relation(fields: [idTransaski], references: [id])
   idGame      Int?
   game        Game?      @relation(fields: [idGame], references: [id])
+  createdAt   DateTime   @default(now())
+  updateAt    DateTime   @updatedAt
 }

@@ -3,19 +3,20 @@ import { PrismaClient } from "@prisma/client";
 import { v4 as uuidv4 } from "uuid";
 import { BASE_URL } from "../global"
 import fs  from 'fs'
+import md5 from "md5";
 
 const prisma = new PrismaClient({ errorFormat: "pretty" });
 
-export const getAllGames = async (req: Request, res: Response) => {
+export const getAllUsers = async (req: Request, res: Response) => {
     try {
         const { search } = req.query //input
-        const allGames = await prisma.game.findMany({
-            where: { name: { contains: search?.toString() || "" } }    // Main
+        const allUsers = await prisma.pelanggan.findMany({
+            where: { username: { contains: search?.toString() || "" } }    // Main
         })
         return res.json({ //output                
             status: 'gacorr',
-            data: allGames,
-            massege: 'Berhasil menampilkan game'
+            data: allUsers,
+            massege: 'Berhasil menampilkan semua user'
         }).status(200)
     } catch (error) {
         return res
@@ -27,21 +28,21 @@ export const getAllGames = async (req: Request, res: Response) => {
     }
 }
 
-export const createGame = async (req: Request, res: Response) => {
+export const createUser = async (req: Request, res: Response) => {
     try {
         //mengambil data
-        const { name, developer, harga, genre, deskripsi, download_link } = req.body
+        const { username, password, email, nomor_telp, jenis_kelamin } = req.body
         const uuid = uuidv4()
 
         //proses save data
-        const newGame = await prisma.game.create({
-            data: { uuid, name, developer, harga: Number(harga), genre, deskripsi, download_link }
+        const newUser = await prisma.pelanggan.create({
+            data: { uuid, username, password: md5(password), email, nomor_telp, jenis_kelamin }
         })
 
         return res.json({
             status: 'Alhamdulillah ga error',
-            data: newGame,
-            message: 'New Game has created'
+            data: newUser,
+            message: 'New User has created'
         }).status(200)
     } catch (error) {
         return res
@@ -54,27 +55,26 @@ export const createGame = async (req: Request, res: Response) => {
 }
 
 
-export const editGame = async (req: Request, res: Response) => {
+export const editUser = async (req: Request, res: Response) => {
     try {
         const { id } = req.params //Memilih id dari menu yang ingin di edit melalui parameter
-        const { name, developer, harga, genre, deskripsi, download_link } = req.body
+        const { username, email, password, nomor_telp, jenis_kelamin } = req.body
 
-        const findGame = await prisma.game.findFirst({ where: { id: Number(id) } })
-        if (!findGame) return res
+        const findUser = await prisma.pelanggan.findFirst({ where: { id: Number(id) } })
+        if (!findUser) return res
             .status(200)
             .json({
                 status: false,
-                message: "Menu tidak ada"
+                message: "User tidak ada"
             })
 
-        const editedGame = await prisma.game.update({
+        const editedGame = await prisma.pelanggan.update({
             data: {
-                name: name || findGame.name,
-                developer: developer || findGame.developer,
-                harga: harga ? Number(harga) : findGame.harga,
-                genre: genre || findGame.genre,
-                deskripsi: deskripsi || findGame.deskripsi,
-                download_link: download_link || findGame.download_link
+                username: username || findUser.username,
+                email: email || findUser.email,
+                password: password ? md5(password) : findUser.password,
+                nomor_telp: nomor_telp || findUser.nomor_telp,
+                jenis_kelamin: jenis_kelamin || findUser.jenis_kelamin,
             },
             where: { id: Number(id) }
         })
@@ -82,7 +82,7 @@ export const editGame = async (req: Request, res: Response) => {
         return res.json({
             status: 'alhamdulillah ga error',
             data: editedGame,
-            message: 'Game sudah diupdate'
+            message: 'User sudah diupdate'
         }).status(200)
     } catch (error) {
         return res
@@ -95,36 +95,36 @@ export const editGame = async (req: Request, res: Response) => {
 }
 
 
-export const changePicture = async (req: Request, res: Response) => {
+export const changeImage = async (req: Request, res: Response) => {
     try {
         const { id } = req.params
 
-        const findGame = await prisma.game.findFirst({ where: { id: Number(id) } })
-        if (!findGame) return res
+        const findUser = await prisma.pelanggan.findFirst({ where: { id: Number(id) } })
+        if (!findUser) return res
             .status(200)
             .json({
-                message: 'Game tidak ada',
+                message: 'User tidak ada',
             })
 
         // DEFAULT VALUE FILENAME OF SAVED DATA
-        let filename = findGame.gambar
+        let filename = findUser.profil_picture
         if (req.file) {
             filename = req.file.filename // UPDATE NAMA FILE SESUAI GAMBAR YANG DIUPLOAD
 
-            let path = `${BASE_URL}/../public/menuPicture/${findGame.gambar}` // CEK FOTO LAMA PADA FOLDER
+            let path = `${BASE_URL}/../public/userPicture/${findUser.profil_picture}` // CEK FOTO LAMA PADA FOLDER
             let exist = fs.existsSync(path)
 
-            if (exist && findGame.gambar !== ``) fs.unlinkSync(path) //MENGHAPUS FOTO LAMA JIKA ADA
+            if (exist && findUser.profil_picture !== ``) fs.unlinkSync(path) //MENGHAPUS FOTO LAMA JIKA ADA
         }
 
-        const updatePicture = await prisma.game.update({
-            data: { gambar: filename },
+        const updatePicture = await prisma.pelanggan.update({
+            data: { profil_picture: filename },
             where: { id: Number(id) }
         })
         return res.json({
             status: 'tru',
             data: updatePicture,
-            message: 'Picture telah diganti'
+            message: 'Foto telah diganti'
         })
 
     } catch (error) {
@@ -135,68 +135,68 @@ export const changePicture = async (req: Request, res: Response) => {
     }
 }
 
-export const deleteGeme = async (req: Request, res: Response) => {
+export const deleteUser = async (req: Request, res: Response) => {
     try {
         const { id } = req.params //Memilih id dari menu yang ingin di hapus melalui parameter
 
         // Mencari menu berdasarkan id
-        const findGame = await prisma.game.findFirst({ where: { id: Number(id) } });
-        if (!findGame) {
+        const findUser = await prisma.pelanggan.findFirst({ where: { id: Number(id) } });
+        if (!findUser) {
             return res.status(404).json({
                 status: 'error lee',
-                message: "Game tidak ditemukan"
+                message: "User tidak ditemukan"
             });
         }
 
         // Menghapus menu
-        await prisma.game.delete({
+        await prisma.pelanggan.delete({
             where: { id: Number(id) }
         });
 
         return res.json({
             status: 'Alhamdulillah ga error',
-            message: 'Game telah dihapus'
+            message: 'User telah dihapus'
         }).status(200);
     } catch (error) {
         return res
             .json({
                 status: false,
-                message: `Error saat menghapus Game ${error}`
+                message: `Error saat menghapus User ${error}`
             })
             .status(400);
     }
 }
 
-export const getTotalGames = async (req: Request, res: Response) => {
+export const getTotalUser = async (req: Request, res: Response) => {
     try {
-        const total = await prisma.game.count();
+        const total = await prisma.pelanggan.count();
         return res.json({
-            total: `Gamenya ada ${total} kakk`,
+            'Jumlah User': `${total}`,
         }).status(200);
     } catch (error) {
         return res
             .json({
                 status: false,
-                message: `duh error ${error}`
+                message: `error leee ${error}`
             })
             .status(400);
     }
 }
 
-export const getGameById = async (req: Request, res: Response) => {
+export const getUserById = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const menu = await prisma.game.findFirst({ where: { id: Number(id) } });
-        if (!menu)
+        const user = await prisma.pelanggan.findFirst({ where: { id: Number(id) } });
+        if (!user)
             return res.status(404).json({
                 status: false,
                 message: "Game tidak ditemukan"
             });
 
         return res.json({
-            status: 'Nih Game',
-            data: menu,
-            message: 'Detail Game berhasil diambil'
+            status: 'Nih',
+            data: user,
+            message: 'Detail User berhasil diambil'
         }).status(200);
     } catch (error) {
         return res

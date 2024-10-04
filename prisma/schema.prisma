@@ -29,16 +29,17 @@ enum Method {
 }
 
 model Pelanggan {
-  id            Int         @id @default(autoincrement())
-  uuid          String      @default("")
-  username      String      @default("")
-  password      String      @default("")
-  email         String      @unique @default("")
-  nomor_telp    String      @default("")
-  jenis_kelamin Jk          @default(Laki_laki)
-  createdAt     DateTime    @default(now())
-  updateAt      DateTime    @updatedAt
-  Transaksi     Transaksi[]
+  id             Int         @id @default(autoincrement())
+  uuid           String      @default("")
+  username       String      @default("")
+  password       String      @default("")
+  email          String      @unique @default("")
+  nomor_telp     String      @default("")
+  jenis_kelamin  Jk          @default(Laki_laki)
+  profil_picture String      @default("")
+  createdAt      DateTime    @default(now())
+  updateAt       DateTime    @updatedAt
+  Transaksi      Transaksi[]
 }
 
 model Admin {

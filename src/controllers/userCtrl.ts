@@ -1,9 +1,10 @@
 import { Request, Response } from "express"; //untuk mengimport express
 import { PrismaClient } from "@prisma/client";
 import { v4 as uuidv4 } from "uuid";
-import { BASE_URL } from "../global"
-import fs  from 'fs'
+import { BASE_URL, SECRET } from "../global"
+import fs from 'fs'
 import md5 from "md5";
+import { sign } from "jsonwebtoken"
 
 const prisma = new PrismaClient({ errorFormat: "pretty" });
 
@@ -190,7 +191,7 @@ export const getUserById = async (req: Request, res: Response) => {
         if (!user)
             return res.status(404).json({
                 status: false,
-                message: "Game tidak ditemukan"
+                message: "User tidak ditemukan"
             });
 
         return res.json({
@@ -207,3 +208,53 @@ export const getUserById = async (req: Request, res: Response) => {
             .status(400);
     }
 }
+
+
+
+export const authentication = async (req: Request, res: Response) => {
+    try {
+        const { email, password } = req.body
+
+        const findUSer = await prisma.pelanggan.findFirst({
+            where: { email, password: md5(password) }
+        })
+
+        if (!findUSer)
+            return res
+                .status(200)
+                .json({
+                    status: 'gagal',
+                    logged: false,
+                    message: 'email or password is invalid'
+                })
+
+        let data = {
+            id: findUSer.id,
+            username: findUSer.username,
+            email: findUSer.email,
+            no_telp: findUSer.nomor_telp
+        }
+
+        let playload = JSON.stringify(data) // MENYIAPKAN DATA YANG AKAN DIJADIKAN TOKEN
+
+        let token = sign(playload, SECRET || "token") //UNTUK MENGGENERATE TOKEN (SIGN)
+
+        return res
+            .status(200)
+            .json({
+                status: 'tru',
+                logged: 'tru',
+                message: "Login Succes",
+                token
+            })
+
+    } catch (error) {
+        return res
+            .json({
+                status: 'fals',
+                message: `error ${error}`
+            })
+            .status(400)
+    }
+}
+

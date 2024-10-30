@@ -28,13 +28,19 @@ enum Method {
   Transfer_bank
 }
 
-model Pelanggan {
+enum Role {
+  Admin
+  Pelanggan
+}
+
+model User {
   id             Int         @id @default(autoincrement())
   uuid           String      @default("")
   username       String      @default("")
   password       String      @default("")
   email          String      @unique @default("")
   nomor_telp     String      @default("")
+  role           Role        @default(Pelanggan)
   jenis_kelamin  Jk          @default(Laki_laki)
   profil_picture String      @default("")
   createdAt      DateTime    @default(now())
@@ -42,13 +48,28 @@ model Pelanggan {
   Transaksi      Transaksi[]
 }
 
-model Admin {
-  id        Int         @id @default(autoincrement())
-  uuid      String      @default("")
-  username  String      @default("")
-  password  String      @default("")
-  Transaksi Transaksi[]
-}
+// model Pelanggan {
+//   id             Int         @id @default(autoincrement())
+//   uuid           String      @default("")
+//   username       String      @default("")
+//   password       String      @default("")
+//   email          String      @unique @default("")
+//   nomor_telp     String      @default("")
+//   jenis_kelamin  Jk          @default(Laki_laki)
+//   profil_picture String      @default("")
+//   createdAt      DateTime    @default(now())
+//   updateAt       DateTime    @updatedAt
+//   Transaksi      Transaksi[]
+// }
+
+// model Admin {
+//   id        Int         @id @default(autoincrement())
+//   uuid      String      @default("")
+//   username  String      @default("")
+//   password  String      @default("")
+//   email     String      @unique @default("")
+//   Transaksi Transaksi[]
+// }
 
 model Game {
   id               Int                @id @default(autoincrement())
@@ -70,17 +91,15 @@ model Game {
 model Transaksi {
   id                Int                @id @default(autoincrement())
   uuid              String             @default("")
-  idPelanggan       Int?
-  pelanggan         Pelanggan?         @relation(fields: [idPelanggan], references: [id])
-  idAdmin           Int?
-  admin             Admin?             @relation(fields: [idAdmin], references: [id])
   status            Status             @default(Belum_Lunas)
   metode_pembayaran Method             @default(QRIS)
   total_bayar       Int                @default(0)
-  tanggal_transaksi DateTime           @default(now())
+  tanggal_transaksi DateTime           @default(now())  
   createdAt         DateTime           @default(now())
   updateAt          DateTime           @updatedAt
   Detail_Transaksi  Detail_Transaksi[]
+  User              User?              @relation(fields: [userId], references: [id])
+  userId            Int?
 }
 
 model Detail_Transaksi {

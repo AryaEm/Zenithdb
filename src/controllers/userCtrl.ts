@@ -1,4 +1,4 @@
-import { Request, Response } from "express"; //untuk mengimport express
+import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 import { v4 as uuidv4 } from "uuid";
 import { BASE_URL, SECRET } from "../global"
@@ -10,11 +10,11 @@ const prisma = new PrismaClient({ errorFormat: "pretty" });
 
 export const getAllUsers = async (req: Request, res: Response) => {
     try {
-        const { search } = req.query //input
-        const allUsers = await prisma.pelanggan.findMany({
-            where: { username: { contains: search?.toString() || "" } }    // Main
+        const { search } = req.query
+        const allUsers = await prisma.user.findMany({
+            where: { username: { contains: search?.toString() || "" } }
         })
-        return res.json({ //output                
+        return res.json({
             status: 'gacorr',
             data: allUsers,
             massege: 'Berhasil menampilkan semua user'
@@ -29,15 +29,16 @@ export const getAllUsers = async (req: Request, res: Response) => {
     }
 }
 
+
 export const createUser = async (req: Request, res: Response) => {
     try {
         //mengambil data
-        const { username, password, email, nomor_telp, jenis_kelamin } = req.body
+        const { username, password, email, role, nomor_telp, jenis_kelamin } = req.body
         const uuid = uuidv4()
 
         //proses save data
-        const newUser = await prisma.pelanggan.create({
-            data: { uuid, username, password: md5(password), email, nomor_telp, jenis_kelamin }
+        const newUser = await prisma.user.create({
+            data: { uuid, username, password: md5(password), email, role, nomor_telp, jenis_kelamin }
         })
 
         return res.json({
@@ -55,13 +56,12 @@ export const createUser = async (req: Request, res: Response) => {
     }
 }
 
-
 export const editUser = async (req: Request, res: Response) => {
     try {
         const { id } = req.params //Memilih id dari menu yang ingin di edit melalui parameter
-        const { username, email, password, nomor_telp, jenis_kelamin } = req.body
+        const { username, email, password, role, nomor_telp, jenis_kelamin } = req.body
 
-        const findUser = await prisma.pelanggan.findFirst({ where: { id: Number(id) } })
+        const findUser = await prisma.user.findFirst({ where: { id: Number(id) } })
         if (!findUser) return res
             .status(200)
             .json({
@@ -69,11 +69,12 @@ export const editUser = async (req: Request, res: Response) => {
                 message: "User tidak ada"
             })
 
-        const editedGame = await prisma.pelanggan.update({
+        const editedGame = await prisma.user.update({
             data: {
                 username: username || findUser.username,
                 email: email || findUser.email,
                 password: password ? md5(password) : findUser.password,
+                role: role || findUser.role,
                 nomor_telp: nomor_telp || findUser.nomor_telp,
                 jenis_kelamin: jenis_kelamin || findUser.jenis_kelamin,
             },
@@ -95,12 +96,11 @@ export const editUser = async (req: Request, res: Response) => {
     }
 }
 
-
 export const changeImage = async (req: Request, res: Response) => {
     try {
         const { id } = req.params
 
-        const findUser = await prisma.pelanggan.findFirst({ where: { id: Number(id) } })
+        const findUser = await prisma.user.findFirst({ where: { id: Number(id) } })
         if (!findUser) return res
             .status(200)
             .json({
@@ -118,7 +118,7 @@ export const changeImage = async (req: Request, res: Response) => {
             if (exist && findUser.profil_picture !== ``) fs.unlinkSync(path) //MENGHAPUS FOTO LAMA JIKA ADA
         }
 
-        const updatePicture = await prisma.pelanggan.update({
+        const updatePicture = await prisma.user.update({
             data: { profil_picture: filename },
             where: { id: Number(id) }
         })
@@ -141,7 +141,7 @@ export const deleteUser = async (req: Request, res: Response) => {
         const { id } = req.params //Memilih id dari menu yang ingin di hapus melalui parameter
 
         // Mencari menu berdasarkan id
-        const findUser = await prisma.pelanggan.findFirst({ where: { id: Number(id) } });
+        const findUser = await prisma.user.findFirst({ where: { id: Number(id) } });
         if (!findUser) {
             return res.status(404).json({
                 status: 'error lee',
@@ -150,7 +150,7 @@ export const deleteUser = async (req: Request, res: Response) => {
         }
 
         // Menghapus menu
-        await prisma.pelanggan.delete({
+        await prisma.user.delete({
             where: { id: Number(id) }
         });
 
@@ -170,7 +170,7 @@ export const deleteUser = async (req: Request, res: Response) => {
 
 export const getTotalUser = async (req: Request, res: Response) => {
     try {
-        const total = await prisma.pelanggan.count();
+        const total = await prisma.user.count();
         return res.json({
             'Jumlah User': `${total}`,
         }).status(200);
@@ -187,7 +187,7 @@ export const getTotalUser = async (req: Request, res: Response) => {
 export const getUserById = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const user = await prisma.pelanggan.findFirst({ where: { id: Number(id) } });
+        const user = await prisma.user.findFirst({ where: { id: Number(id) } });
         if (!user)
             return res.status(404).json({
                 status: false,
@@ -209,13 +209,48 @@ export const getUserById = async (req: Request, res: Response) => {
     }
 }
 
+export const registerUser = async (req: Request, res: Response) => {
+    try {
+        const { username, password, email, role, nomor_telp, jenis_kelamin } = req.body;
+        const uuid = uuidv4();
+
+        // Cek apakah email sudah trdaftar
+        const existingUser = await prisma.user.findUnique({ where: { email } });
+        if (existingUser) {
+            return res.status(400).json({ status: false, message: 'Email already registered' });
+        }
+
+        const newUser = await prisma.user.create({
+            data: {
+                uuid,
+                username,
+                password: md5(password),
+                email,
+                nomor_telp,
+                jenis_kelamin,
+                role: 'Pelanggan'
+            }
+        });
+
+        return res.status(201).json({
+            status: 'success',
+            data: newUser,
+            message: 'User registered successfully'
+        });
+    } catch (error) {
+        return res.status(400).json({
+            status: false,
+            message: `Error: ${error}`
+        });
+    }
+};
 
 
 export const authentication = async (req: Request, res: Response) => {
     try {
         const { email, password } = req.body
 
-        const findUSer = await prisma.pelanggan.findFirst({
+        const findUSer = await prisma.user.findFirst({
             where: { email, password: md5(password) }
         })
 
@@ -232,7 +267,8 @@ export const authentication = async (req: Request, res: Response) => {
             id: findUSer.id,
             username: findUSer.username,
             email: findUSer.email,
-            no_telp: findUSer.nomor_telp
+            no_telp: findUSer.nomor_telp,
+            role: findUSer.role
         }
 
         let playload = JSON.stringify(data) // MENYIAPKAN DATA YANG AKAN DIJADIKAN TOKEN
@@ -242,9 +278,10 @@ export const authentication = async (req: Request, res: Response) => {
         return res
             .status(200)
             .json({
-                status: 'tru',
-                logged: 'tru',
-                message: "Login Succes",
+                status: 'success',
+                logged: true,
+                data: data,
+                message: "Login Successfull",
                 token
             })
 

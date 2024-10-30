@@ -10,7 +10,21 @@ export const getAllGames = async (req: Request, res: Response) => {
     try {
         const { search } = req.query //input
         const allGames = await prisma.game.findMany({
-            where: { name: { contains: search?.toString() || "" } }    // Main
+            where: { name: { contains: search?.toString() || "" } },
+            select: {
+                id: true,
+                uuid: true,
+                name: true,
+                gambar: true,
+                video: true,
+                developer: true,
+                harga: true,
+                deskripsi: true,
+                genre: true,
+                tahun_rilis: true,
+                createdAt: true,
+                updateAt: true,
+            }
         })
         return res.json({ //output                
             status: 'gacorr',
@@ -186,7 +200,24 @@ export const getTotalGames = async (req: Request, res: Response) => {
 export const getGameById = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const menu = await prisma.game.findFirst({ where: { id: Number(id) } });
+        const menu = await prisma.game.findFirst({ 
+            where: { id: Number(id) },
+            select: {
+                id: true,
+                uuid: true,
+                name: true,
+                gambar: true,
+                video: true,
+                developer: true,
+                harga: true,
+                deskripsi: true,
+                genre: true,
+                tahun_rilis: true,
+                createdAt: true,
+                updateAt: true,
+            }
+        });
+        
         if (!menu)
             return res.status(404).json({
                 status: false,
@@ -207,3 +238,45 @@ export const getGameById = async (req: Request, res: Response) => {
             .status(400);
     }
 }
+
+export const getMostPurchasedGames = async (req: Request, res: Response) => {
+    try {
+        const { limit } = req.query; // Input untuk membatasi jumlah game yang ditampilkan
+
+        const mostPurchasedGames = await prisma.game.findMany({
+            select: {
+                id: true,
+                uuid: true,
+                name: true,
+                gambar: true,
+                developer: true,
+                harga: true,
+                deskripsi: true,
+                genre: true,
+                tahun_rilis: true,
+                createdAt: true,
+                updateAt: true,
+                _count: {
+                    select: {
+                        Detail_Transaksi: true, // Menghitung jumlah transaksi untuk setiap game
+                    },
+                },
+            },
+            orderBy: {
+                Detail_Transaksi: { _count: "desc" }, // Mengurutkan berdasarkan jumlah transaksi
+            },
+            take: Number(limit) || 10, // Mengambil 10 game teratas 
+        });
+
+        return res.status(200).json({
+            status: 'success',
+            data: mostPurchasedGames,
+            message: 'Berhasil menampilkan game yang paling banyak dibeli',
+        });
+    } catch (error) {
+        return res.status(400).json({
+            status: false,
+            message: `Error bang ${error}`,
+        });
+    }
+};

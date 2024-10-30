@@ -11,6 +11,7 @@ const addDataSchema = Joi.object({
     download_link: Joi.string().required(),
     gambar: Joi.allow().optional(),
     video: Joi.allow().optional(),
+    user: Joi.required()
 })
 
 const editDataSchema = Joi.object({
@@ -22,6 +23,7 @@ const editDataSchema = Joi.object({
     download_link: Joi.string().optional(),
     gambar: Joi.allow().optional(),
     video: Joi.allow().optional(),
+    user: Joi.required()
 })
 
 

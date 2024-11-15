@@ -80,6 +80,7 @@ model Game {
   developer        String             @default("")
   harga            Int                @default(0)
   deskripsi        String             @default("") @db.Text
+  total_dibeli     Int                @default(0)
   genre            String             @default("")
   tahun_rilis      DateTime           @default(now())
   download_link    String             @default("")
@@ -91,10 +92,11 @@ model Game {
 model Transaksi {
   id                Int                @id @default(autoincrement())
   uuid              String             @default("")
+  customer          String             @default("")
   status            Status             @default(Belum_Lunas)
   metode_pembayaran Method             @default(QRIS)
   total_bayar       Int                @default(0)
-  tanggal_transaksi DateTime           @default(now())  
+  tanggal_transaksi DateTime           @default(now())
   createdAt         DateTime           @default(now())
   updateAt          DateTime           @updatedAt
   Detail_Transaksi  Detail_Transaksi[]

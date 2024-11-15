@@ -2,7 +2,7 @@ import { Request, Response } from "express"; //untuk mengimport express
 import { PrismaClient } from "@prisma/client";
 import { v4 as uuidv4 } from "uuid";
 import { BASE_URL } from "../global"
-import fs  from 'fs'
+import fs from 'fs'
 
 const prisma = new PrismaClient({ errorFormat: "pretty" });
 
@@ -20,6 +20,7 @@ export const getAllGames = async (req: Request, res: Response) => {
                 developer: true,
                 harga: true,
                 deskripsi: true,
+                total_dibeli: true,
                 genre: true,
                 tahun_rilis: true,
                 createdAt: true,
@@ -47,9 +48,12 @@ export const createGame = async (req: Request, res: Response) => {
         const { name, developer, harga, genre, deskripsi, download_link } = req.body
         const uuid = uuidv4()
 
+        let filename = ""
+        if (req.file) filename = req.file.filename
+
         //proses save data
         const newGame = await prisma.game.create({
-            data: { uuid, name, developer, harga: Number(harga), genre, deskripsi, download_link }
+            data: { uuid, name, developer, harga: Number(harga), genre, deskripsi, download_link, gambar: filename }
         })
 
         return res.json({
@@ -81,6 +85,16 @@ export const editGame = async (req: Request, res: Response) => {
                 message: "Menu tidak ada"
             })
 
+        let filename = findGame.gambar
+        if (req.file) {
+            filename = req.file.filename // UPDATE NAMA FILE SESUAI GAMBAR YANG DIUPLOAD
+
+            let path = `${BASE_URL}/../public/gamePicture/${findGame.gambar}` // CEK FOTO LAMA PADA FOLDER
+            let exist = fs.existsSync(path)
+
+            if (exist && findGame.gambar !== ``) fs.unlinkSync(path) //MENGHAPUS FOTO LAMA JIKA ADA
+        }
+
         const editedGame = await prisma.game.update({
             data: {
                 name: name || findGame.name,
@@ -88,7 +102,8 @@ export const editGame = async (req: Request, res: Response) => {
                 harga: harga ? Number(harga) : findGame.harga,
                 genre: genre || findGame.genre,
                 deskripsi: deskripsi || findGame.deskripsi,
-                download_link: download_link || findGame.download_link
+                download_link: download_link || findGame.download_link,
+                gambar: filename
             },
             where: { id: Number(id) }
         })
@@ -109,45 +124,45 @@ export const editGame = async (req: Request, res: Response) => {
 }
 
 
-export const changePicture = async (req: Request, res: Response) => {
-    try {
-        const { id } = req.params
+// export const changePicture = async (req: Request, res: Response) => {
+//     try {
+//         const { id } = req.params
 
-        const findGame = await prisma.game.findFirst({ where: { id: Number(id) } })
-        if (!findGame) return res
-            .status(200)
-            .json({
-                message: 'Game tidak ada',
-            })
+//         const findGame = await prisma.game.findFirst({ where: { id: Number(id) } })
+//         if (!findGame) return res
+//             .status(200)
+//             .json({
+//                 message: 'Game tidak ada',
+//             })
 
-        // DEFAULT VALUE FILENAME OF SAVED DATA
-        let filename = findGame.gambar
-        if (req.file) {
-            filename = req.file.filename // UPDATE NAMA FILE SESUAI GAMBAR YANG DIUPLOAD
+//         // DEFAULT VALUE FILENAME OF SAVED DATA
+//         let filename = findGame.gambar
+//         if (req.file) {
+//             filename = req.file.filename // UPDATE NAMA FILE SESUAI GAMBAR YANG DIUPLOAD
 
-            let path = `${BASE_URL}/../public/menuPicture/${findGame.gambar}` // CEK FOTO LAMA PADA FOLDER
-            let exist = fs.existsSync(path)
+//             let path = `${BASE_URL}/../public/menuPicture/${findGame.gambar}` // CEK FOTO LAMA PADA FOLDER
+//             let exist = fs.existsSync(path)
 
-            if (exist && findGame.gambar !== ``) fs.unlinkSync(path) //MENGHAPUS FOTO LAMA JIKA ADA
-        }
+//             if (exist && findGame.gambar !== ``) fs.unlinkSync(path) //MENGHAPUS FOTO LAMA JIKA ADA
+//         }
 
-        const updatePicture = await prisma.game.update({
-            data: { gambar: filename },
-            where: { id: Number(id) }
-        })
-        return res.json({
-            status: 'tru',
-            data: updatePicture,
-            message: 'Picture telah diganti'
-        })
+//         const updatePicture = await prisma.game.update({
+//             data: { gambar: filename },
+//             where: { id: Number(id) }
+//         })
+//         return res.json({
+//             status: 'tru',
+//             data: updatePicture,
+//             message: 'Picture telah diganti'
+//         })
 
-    } catch (error) {
-        return res.json({
-            status: 'fals',
-            error: `${error}`
-        }).status(400)
-    }
-}
+//     } catch (error) {
+//         return res.json({
+//             status: 'fals',
+//             error: `${error}`
+//         }).status(400)
+//     }
+// }
 
 export const deleteGeme = async (req: Request, res: Response) => {
     try {
@@ -199,9 +214,20 @@ export const getTotalGames = async (req: Request, res: Response) => {
 
 export const getGameById = async (req: Request, res: Response) => {
     try {
-        const { id } = req.params;
-        const menu = await prisma.game.findFirst({ 
-            where: { id: Number(id) },
+        // Ambil id dari parameter dan konversi ke angka
+        const id = parseInt(req.params.id);
+
+        // Validasi apakah id adalah angka yang valid
+        if (isNaN(id)) {
+            return res.status(400).json({
+                status: false,
+                message: "Invalid ID format"
+            });
+        }
+
+        // Cari game berdasarkan id
+        const game = await prisma.game.findFirst({
+            where: { id }, // Prisma mengenali `id` sebagai integer sekarang
             select: {
                 id: true,
                 uuid: true,
@@ -211,72 +237,65 @@ export const getGameById = async (req: Request, res: Response) => {
                 developer: true,
                 harga: true,
                 deskripsi: true,
+                total_dibeli: true,
                 genre: true,
                 tahun_rilis: true,
                 createdAt: true,
-                updateAt: true,
+                updateAt: true
             }
         });
-        
-        if (!menu)
+
+        // Jika game tidak ditemukan, kirim response dengan status 404
+        if (!game) {
             return res.status(404).json({
                 status: false,
-                message: "Game tidak ditemukan"
+                message: `Game with id ${id} not found`
             });
+        }
 
-        return res.json({
-            status: 'Nih Game',
-            data: menu,
-            message: 'Detail Game berhasil diambil'
-        }).status(200);
-    } catch (error) {
-        return res
-            .json({
-                status: false,
-                message: `Error: ${error}`
-            })
-            .status(400);
-    }
-}
-
-export const getMostPurchasedGames = async (req: Request, res: Response) => {
-    try {
-        const { limit } = req.query; // Input untuk membatasi jumlah game yang ditampilkan
-
-        const mostPurchasedGames = await prisma.game.findMany({
-            select: {
-                id: true,
-                uuid: true,
-                name: true,
-                gambar: true,
-                developer: true,
-                harga: true,
-                deskripsi: true,
-                genre: true,
-                tahun_rilis: true,
-                createdAt: true,
-                updateAt: true,
-                _count: {
-                    select: {
-                        Detail_Transaksi: true, // Menghitung jumlah transaksi untuk setiap game
-                    },
-                },
-            },
-            orderBy: {
-                Detail_Transaksi: { _count: "desc" }, // Mengurutkan berdasarkan jumlah transaksi
-            },
-            take: Number(limit) || 10, // Mengambil 10 game teratas 
-        });
-
+        // Jika game ditemukan, kirim response dengan data game
         return res.status(200).json({
-            status: 'success',
-            data: mostPurchasedGames,
-            message: 'Berhasil menampilkan game yang paling banyak dibeli',
+            status: true,
+            data: game,
+            message: `Game with id ${id} retrieved successfully`
         });
     } catch (error) {
-        return res.status(400).json({
+        return res.status(500).json({
             status: false,
-            message: `Error bang ${error}`,
+            message: `Error retrieving game: ${error}`
+        });
+    }
+};
+
+export const getMostPurchasedGame = async (req: Request, res: Response) => {
+    try {
+        // Ambil game yang diurutkan berdasarkan total_dibeli (desc), dan limit hasilnya sesuai kebutuhan
+        const mostPurchasedGames = await prisma.game.findMany({
+            orderBy: {
+                total_dibeli: 'desc' // Urutkan berdasarkan total_dibeli tertinggi
+            },
+            take: 10 // Ambil 10 game teratas atau sesuai kebutuhan
+        });
+
+        // Cek apakah ada game yang ditemukan
+        if (mostPurchasedGames.length === 0) {
+            return res.status(200).json({
+                status: true,
+                message: 'No games found',
+                data: []
+            });
+        }
+
+        // Return response sukses dengan data game yang diurutkan
+        return res.status(200).json({
+            status: true,
+            message: 'Most purchased games retrieved successfully',
+            data: mostPurchasedGames
+        });
+    } catch (error) {
+        return res.status(500).json({
+            status: false,
+            message: `Error retrieving most purchased games: ${error}`
         });
     }
 };

@@ -10,7 +10,8 @@ const addDataUser = Joi.object({
     nomor_telp: Joi.string().required(),
     jenis_kelamin: Joi.string().valid('Laki_laki', 'Perempuan').required(),
     role: Joi.string().valid('Admin', 'Pelanggan').required(),
-    profile_picture: Joi.allow().optional
+    profile_picture: Joi.allow().optional,
+    user: Joi.required()
 })
 
 const editDataUser = Joi.object({

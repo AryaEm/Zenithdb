@@ -96,7 +96,7 @@ model Transaksi {
   status            Status             @default(Belum_Lunas)
   metode_pembayaran Method             @default(QRIS)
   total_bayar       Int                @default(0)
-  tanggal_transaksi DateTime           @default(now())
+  // tanggal_transaksi DateTime           @default(now())
   createdAt         DateTime           @default(now())
   updateAt          DateTime           @updatedAt
   Detail_Transaksi  Detail_Transaksi[]

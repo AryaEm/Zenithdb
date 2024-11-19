@@ -299,3 +299,49 @@ export const getMostPurchasedGame = async (req: Request, res: Response) => {
         });
     }
 };
+
+export const getPurchasedGame = async (req: Request, res: Response) => {
+    try {
+        const userPurchases = await prisma.user.findMany({
+            select: {
+                id: true,
+                username: true,
+                email: true,
+                Transaksi: {
+                    select: {
+                        id: true,
+                        Detail_Transaksi: {
+                            select: {
+                                game: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        developer: true,
+                                        harga: true,
+                                        genre: true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        })
+
+        const result = userPurchases.map(user => ({
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            purchasedGames: user.Transaksi.flatMap(transaksi =>
+                transaksi.Detail_Transaksi.map(detail => detail.game)
+            )
+        }))
+
+        res.status(200).json(result)
+    } catch (error) {
+        console.log(error)
+        res.status(500).json({
+            error: `${error}`
+        })
+    }
+}

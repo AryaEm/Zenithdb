@@ -274,7 +274,23 @@ export const getMostPurchasedGame = async (req: Request, res: Response) => {
             orderBy: {
                 total_dibeli: 'desc' // Urutkan berdasarkan total_dibeli tertinggi
             },
-            take: 10 // Ambil 10 game teratas atau sesuai kebutuhan
+            take: 10, // Ambil 10 game teratas atau sesuai kebutuhan
+            select: {
+                id: true,
+                uuid: true,
+                name: true,
+                gambar: true,
+                video: true,
+                developer: true,
+                harga: true,
+                deskripsi: true,
+                total_dibeli: true,
+                genre: true,
+                tahun_rilis: true,
+                createdAt: true,
+                updateAt: true,
+                // download_link tidak disertakan
+            },
         });
 
         // Cek apakah ada game yang ditemukan
@@ -318,7 +334,8 @@ export const getPurchasedGame = async (req: Request, res: Response) => {
                                         name: true,
                                         developer: true,
                                         harga: true,
-                                        genre: true
+                                        genre: true,
+                                        download_link: true
                                     }
                                 }
                             }

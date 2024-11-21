@@ -8,7 +8,7 @@ const app = express()
 app.use(express.json())
 
 app.get('/', [verifyToken, verifyRole(['Admin', 'Pelanggan'])], getAllGames )
-app.get('/total', [verifyToken, verifyRole(['Admin', 'Pelanggan'])], getTotalGames)
+app.get('/total', [verifyToken, verifyRole(['Admin'])], getTotalGames)
 app.get('/mostpurchased', [verifyToken, verifyRole(['Admin', 'Pelanggan'])], getMostPurchasedGame);
 app.get('/purchased-game', [verifyToken, verifyRole(['Admin', 'Pelanggan'])], getPurchasedGame)
 app.get('/:id', [verifyToken, verifyRole(['Admin', 'Pelanggan'])], getGameById)

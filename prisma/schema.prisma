@@ -99,9 +99,9 @@ model Transaksi {
   // tanggal_transaksi DateTime           @default(now())
   createdAt         DateTime           @default(now())
   updateAt          DateTime           @updatedAt
-  Detail_Transaksi  Detail_Transaksi[]
   User              User?              @relation(fields: [userId], references: [id])
   userId            Int?
+  Detail_Transaksi  Detail_Transaksi[]
 }
 
 model Detail_Transaksi {

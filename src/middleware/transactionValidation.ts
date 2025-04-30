@@ -7,7 +7,7 @@ const orderListSchema = Joi.object({
 })
 
 const addDataSchema = Joi.object({
-    customer: Joi.string().required(),
+    customer: Joi.string().optional(),
     metode_pembayaran: Joi.string().valid("Transfer_bank", "QRIS").required(),
     status: Joi.string().valid("Belum_Lunas", "Lunas").required(),
     idUser: Joi.number().optional(),
@@ -17,7 +17,6 @@ const addDataSchema = Joi.object({
 
 export const verifyAddOrder = (req: Request, res: Response, next: NextFunction) => {
     const { error } = addDataSchema.validate(req.body, { abortEarly: false })
-
     if (error) {
         return res.status(400).json({
             status: false,

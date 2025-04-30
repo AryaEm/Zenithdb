@@ -36,13 +36,18 @@ export const createUser = async (req: Request, res: Response) => {
         const { username, password, email, role, nomor_telp, jenis_kelamin } = req.body
         const uuid = uuidv4()
 
+        const existingUser = await prisma.user.findUnique({ where: { email } });
+        if (existingUser) {
+            return res.status(200).json({ status: false, message: 'Email already registered' });
+        }
+
         //proses save data
         const newUser = await prisma.user.create({
             data: { uuid, username, password: md5(password), email, role, nomor_telp, jenis_kelamin }
         })
 
         return res.json({
-            status: 'Alhamdulillah ga error',
+            status: true,
             data: newUser,
             message: 'New User has created'
         }).status(200)
@@ -82,14 +87,14 @@ export const editUser = async (req: Request, res: Response) => {
         })
 
         return res.json({
-            status: 'alhamdulillah ga error',
+            status: true,
             data: editedGame,
             message: 'User sudah diupdate'
         }).status(200)
     } catch (error) {
         return res
             .json({
-                status: 'yek error',
+                status: false,
                 message: `error lee ${error}`
             })
             .status(400)
@@ -123,14 +128,14 @@ export const changeImage = async (req: Request, res: Response) => {
             where: { id: Number(id) }
         })
         return res.json({
-            status: 'tru',
+            status: true,
             data: updatePicture,
             message: 'Foto telah diganti'
         })
 
     } catch (error) {
         return res.json({
-            status: 'fals',
+            status: false,
             error: `${error}`
         }).status(400)
     }
@@ -144,7 +149,7 @@ export const deleteUser = async (req: Request, res: Response) => {
         const findUser = await prisma.user.findFirst({ where: { id: Number(id) } });
         if (!findUser) {
             return res.status(404).json({
-                status: 'error lee',
+                status: false,
                 message: "User tidak ditemukan"
             });
         }
@@ -155,7 +160,7 @@ export const deleteUser = async (req: Request, res: Response) => {
         });
 
         return res.json({
-            status: 'Alhamdulillah ga error',
+            status: true,
             message: 'User telah dihapus'
         }).status(200);
     } catch (error) {
@@ -195,7 +200,7 @@ export const getUserById = async (req: Request, res: Response) => {
             });
 
         return res.json({
-            status: 'Nih',
+            status: true,
             data: user,
             message: 'Detail User berhasil diambil'
         }).status(200);
@@ -211,34 +216,38 @@ export const getUserById = async (req: Request, res: Response) => {
 
 export const registerUser = async (req: Request, res: Response) => {
     try {
-        const { username, password, email, role, nomor_telp, jenis_kelamin } = req.body;
+        const { username, email, password } = req.body;
         const uuid = uuidv4();
 
         // Cek apakah email sudah trdaftar
         const existingUser = await prisma.user.findUnique({ where: { email } });
         if (existingUser) {
-            return res.status(400).json({ status: false, message: 'Email already registered' });
+            return res.status(200).json({ status: false, message: 'Email already registered' });
         }
 
         const newUser = await prisma.user.create({
             data: {
                 uuid,
                 username,
-                password: md5(password),
                 email,
-                nomor_telp,
-                jenis_kelamin,
+                password: md5(password),
+                nomor_telp: "",
+                jenis_kelamin: "Laki_laki",
                 role: 'Pelanggan'
             }
         });
 
-        return res.status(201).json({
-            status: 'success',
+        const playload = JSON.stringify(newUser);
+        const token = sign(playload, SECRET || "token");
+
+        return res.status(200).json({
+            status: true,
             data: newUser,
+            token: token, // ✅ token dikirim langsung, sama kayak login
             message: 'User registered successfully'
         });
     } catch (error) {
-        return res.status(400).json({
+        return res.status(200).json({
             status: false,
             message: `Error: ${error}`
         });
@@ -258,7 +267,7 @@ export const authentication = async (req: Request, res: Response) => {
             return res
                 .status(200)
                 .json({
-                    status: 'gagal',
+                    status: false,
                     logged: false,
                     message: 'email or password is invalid'
                 })
@@ -278,7 +287,7 @@ export const authentication = async (req: Request, res: Response) => {
         return res
             .status(200)
             .json({
-                status: 'success',
+                status: true,
                 logged: true,
                 data: data,
                 message: "Login Successfull",
@@ -288,7 +297,7 @@ export const authentication = async (req: Request, res: Response) => {
     } catch (error) {
         return res
             .json({
-                status: 'fals',
+                status: false,
                 message: `error ${error}`
             })
             .status(400)

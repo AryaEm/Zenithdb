@@ -32,7 +32,8 @@ export const verifyToken = (req: Request, res: Response, next: NextFunction) => 
 
 export const verifyRole = (allowedRoles: string[]) => {
     return (req: Request, res: Response, next: NextFunction) => {
-        const user = req.body.user
+        const user = req.body.user;
+        (req as any).userTransaction = user.username;
 
         if (!user) {
             return res.status(403).json({

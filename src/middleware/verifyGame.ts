@@ -5,10 +5,10 @@ import Joi, { required } from 'joi'
 const addDataSchema = Joi.object({
     name: Joi.string().required(),
     harga: Joi.number().min(0).required(),
-    developer: Joi.string().required(),
+    developer: Joi.string().optional(),
     deskripsi: Joi.string().required(),
     genre: Joi.string().required(),
-    download_link: Joi.string().required(),
+    download_link: Joi.string().optional(),
     gambar: Joi.allow().optional(),
     video: Joi.allow().optional(),
 })

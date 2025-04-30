@@ -41,7 +41,7 @@ model User {
   email          String      @unique @default("")
   nomor_telp     String      @default("")
   role           Role        @default(Pelanggan)
-  jenis_kelamin  Jk          @default(Laki_laki)
+  jenis_kelamin  Jk
   profil_picture String      @default("")
   createdAt      DateTime    @default(now())
   updateAt       DateTime    @updatedAt

@@ -8,9 +8,17 @@ const prisma = new PrismaClient({ errorFormat: "pretty" });
 
 export const getAllGames = async (req: Request, res: Response) => {
     try {
-        const { search } = req.query //input
+        const { search, latest } = req.query //input
+
         const allGames = await prisma.game.findMany({
-            where: { name: { contains: search?.toString() || "" } },
+            where:
+            {
+                name: {
+                    contains: search?.toString() || ""
+                }
+            },
+            orderBy: latest ? { createdAt: 'desc' } : undefined,
+            take: latest ? 3 : undefined, 
             select: {
                 id: true,
                 uuid: true,
@@ -28,7 +36,7 @@ export const getAllGames = async (req: Request, res: Response) => {
             }
         })
         return res.json({ //output                
-            status: 'gacorr',
+            status: true,
             data: allGames,
             massege: 'Berhasil menampilkan game'
         }).status(200)
@@ -57,7 +65,7 @@ export const createGame = async (req: Request, res: Response) => {
         })
 
         return res.json({
-            status: 'Alhamdulillah ga error',
+            status: true,
             data: newGame,
             message: 'New Game has created'
         }).status(200)
@@ -109,14 +117,14 @@ export const editGame = async (req: Request, res: Response) => {
         })
 
         return res.json({
-            status: 'alhamdulillah ga error',
+            status: true,
             data: editedGame,
             message: 'Game sudah diupdate'
         }).status(200)
     } catch (error) {
         return res
             .json({
-                status: 'yek error',
+                status: false,
                 message: `error lee ${error}`
             })
             .status(400)
@@ -172,7 +180,7 @@ export const deleteGeme = async (req: Request, res: Response) => {
         const findGame = await prisma.game.findFirst({ where: { id: Number(id) } });
         if (!findGame) {
             return res.status(404).json({
-                status: 'error lee',
+                status: false,
                 message: "Game tidak ditemukan"
             });
         }
@@ -183,7 +191,7 @@ export const deleteGeme = async (req: Request, res: Response) => {
         });
 
         return res.json({
-            status: 'Alhamdulillah ga error',
+            status: true,
             message: 'Game telah dihapus'
         }).status(200);
     } catch (error) {
@@ -200,13 +208,13 @@ export const getTotalGames = async (req: Request, res: Response) => {
     try {
         const total = await prisma.game.count();
         return res.json({
-            total: `Gamenya ada ${total} kakk`,
+            total: total,
         }).status(200);
     } catch (error) {
         return res
             .json({
                 status: false,
-                message: `duh error ${error}`
+                message: `${error}`
             })
             .status(400);
     }
@@ -360,5 +368,43 @@ export const getPurchasedGame = async (req: Request, res: Response) => {
         res.status(500).json({
             error: `${error}`
         })
+    }
+}
+
+export const getQuickAccess = async (req: Request, res: Response) => {
+    try {
+        const { search } = req.query //input
+        const Quickaccess = await prisma.game.findMany({
+            where: { name: { contains: search?.toString() || "" } },
+            take: 9,
+            select: {
+                id: true,
+                uuid: true,
+                name: true,
+                gambar: true,
+                video: true,
+                developer: true,
+                harga: true,
+                deskripsi: true,
+                total_dibeli: true,
+                genre: true,
+                tahun_rilis: true,
+                createdAt: true,
+                updateAt: true,
+            }
+        })
+        return res.json({
+            status: true,
+            data: Quickaccess,
+            massege: 'Berhasil menampilkan game'
+        }).status(200)
+
+    } catch (error: unknown) {
+        if (error instanceof Error) {
+            console.log(error.message)
+            res.status(500).json({
+                error: `${error.message}`
+            })
+        }
     }
 }

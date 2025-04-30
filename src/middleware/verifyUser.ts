@@ -7,11 +7,11 @@ const addDataUser = Joi.object({
     username: Joi.string().required(),
     email: Joi.string().email().required(),
     password: Joi.string().min(8).required(),
-    nomor_telp: Joi.string().required(),
-    jenis_kelamin: Joi.string().valid('Laki_laki', 'Perempuan').required(),
+    nomor_telp: Joi.string().optional(),
+    jenis_kelamin: Joi.string().valid('Laki_laki', 'Perempuan').optional(),
     role: Joi.string().valid('Admin', 'Pelanggan').required(),
-    profile_picture: Joi.allow().optional,
-    user: Joi.required()
+    profile_picture: Joi.allow().optional(),
+    // user: Joi.required()
 })
 
 const editDataUser = Joi.object({
@@ -21,15 +21,17 @@ const editDataUser = Joi.object({
     nomor_telp: Joi.string().optional(),
     role: Joi.string().valid('Admin', 'Pelanggan').optional(),
     jenis_kelamin: Joi.string().valid('Laki_laki', 'Perempuan').optional(),
-    profile_picture: Joi.allow().optional
+    profile_picture: Joi.allow().optional(),
+    user: Joi.required()
 })
+
 
 const registerDataUser = Joi.object({
     username: Joi.string().required(),
     password: Joi.string().min(8).required(),
     email: Joi.string().email().required(),
-    nomor_telp: Joi.string().required(),
-    jenis_kelamin: Joi.string().valid("Laki_laki", "Perempuan").required(),
+    nomor_telp: Joi.string().optional(),
+    jenis_kelamin: Joi.string().valid("Laki_laki", "Perempuan").optional(),
     // role: Joi.string().valid("Admin", "Pelanggan").optional()
 })
 
@@ -39,7 +41,7 @@ export const verifyAddUser = (req: Request, res: Response, next: NextFunction) =
 
     if (error) {
         //response jika ada error
-        return res.status(400).json({
+        return res.status(200).json({
             status: false,
             message: error.details.map(it => it.message).join()
         })
@@ -53,7 +55,7 @@ export const verifyEditUser = (req: Request, res: Response, next: NextFunction) 
 
     if (error) {
         //response jika ada error
-        return res.status(400).json({
+        return res.status(200).json({
             status: false,
             message: error.details.map(it => it.message).join()
         })
@@ -67,7 +69,7 @@ export const verifyRegisterUser = (req: Request, res: Response, next: NextFuncti
 
     if (error) {
         //response jika ada error
-        return res.status(400).json({
+        return res.status(200).json({
             status: false,
             message: error.details.map(it => it.message).join()
         })

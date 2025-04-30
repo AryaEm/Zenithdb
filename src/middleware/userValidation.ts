@@ -10,7 +10,7 @@ export const verifyAuthtentication = (req: Request, res: Response, next: NextFun
     const { error } = authschema.validate(req.body, { abortEarly: false })
 
     if (error) {
-        return res.status(400).json({
+        return res.status(200).json({
             status: false,
             message: error.details.map((it) => it.message).join()
         })

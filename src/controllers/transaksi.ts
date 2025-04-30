@@ -34,7 +34,8 @@ export const getAllOrders = async (request: Request, response: Response) => {
 
 export const createOrder = async (request: Request, response: Response) => {
     try {
-        const { customer, metode_pembayaran, status, detail_transaksi } = request.body;
+        const { metode_pembayaran, status, detail_transaksi } = request.body;
+        const customer = (request as any).userTransaction;
         const user = request.body.user;
 
         // console.log(user)
@@ -43,7 +44,7 @@ export const createOrder = async (request: Request, response: Response) => {
         let total_bayar = 0;
 
         for (let index = 0; index < detail_transaksi.length; index++) {
-            const { gameId, quantity = 1 } = detail_transaksi[index]; // Default quantity = 1 jika tidak ada
+            const { gameId, quantity = 1 } = detail_transaksi[index]; 
 
             // Cari game berdasarkan gameId
             const detailGame = await prisma.game.findFirst({

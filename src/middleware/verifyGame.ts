@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import Joi, { required } from 'joi'
+import Joi from 'joi'
 
 //Membuat schema sata menambah data menu
 const addDataSchema = Joi.object({
@@ -31,7 +31,7 @@ export const verifyAddGame = (req: Request, res: Response, next: NextFunction) =
 
     if (error) {
         //response jika ada error
-        return res.status(400).json({
+        return res.status(400).json({   
             status: false,
             message: error.details.map(it => it.message).join()
         })

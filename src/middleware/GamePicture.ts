@@ -5,6 +5,7 @@ import { BASE_URL } from '../global'
 
 const storage = multer.diskStorage({
     destination: (req: Request, file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => {
+        console.log('MULTER Destination triggered');
         cb(null, `${BASE_URL}/public/gamePicture/`) // LOKASI PENYIMPANAN FILE
     },
     filename: (req: Request, file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => {

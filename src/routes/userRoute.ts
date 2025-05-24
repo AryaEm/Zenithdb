@@ -18,7 +18,7 @@ app.get('/total', [verifyToken, verifyRole(["Admin"])], getTotalUser)
 app.get('/:id', [verifyToken, verifyRole(["Admin"])], getUserById)
 app.post('/', [verifyAddUser, verifyToken, verifyRole(["Admin"])], createUser)
 app.put('/:id', [verifyToken, verifyRole(["Admin"]), verifyEditUser], editUser)
-app.put('/pic/:id', [verifyToken, verifyRole(["Admin"]), uploadFile.single("Image")], changeImage)
+app.put('/pic/:id', [verifyToken, verifyRole(["Admin", "Pelanggan"]), uploadFile.single("Image")], changeImage)
 app.delete('/:id', [verifyToken, verifyRole(["Admin"])], deleteUser)
 
 

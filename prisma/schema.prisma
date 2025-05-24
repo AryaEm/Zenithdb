@@ -18,6 +18,11 @@ enum Jk {
   Perempuan
 }
 
+enum Owned {
+  True
+  False
+}
+
 enum Status {
   Belum_Lunas
   Lunas
@@ -39,37 +44,16 @@ model User {
   username       String      @default("")
   password       String      @default("")
   email          String      @unique @default("")
-  nomor_telp     String      @default("")
+  nomor_telp     String?     @default("")
   role           Role        @default(Pelanggan)
-  jenis_kelamin  Jk
+  jenis_kelamin  Jk?
   profil_picture String      @default("")
   createdAt      DateTime    @default(now())
   updateAt       DateTime    @updatedAt
+  ownedGames     Game[]      @relation("OwnedGames")
   Transaksi      Transaksi[]
+  Game           Game[]
 }
-
-// model Pelanggan {
-//   id             Int         @id @default(autoincrement())
-//   uuid           String      @default("")
-//   username       String      @default("")
-//   password       String      @default("")
-//   email          String      @unique @default("")
-//   nomor_telp     String      @default("")
-//   jenis_kelamin  Jk          @default(Laki_laki)
-//   profil_picture String      @default("")
-//   createdAt      DateTime    @default(now())
-//   updateAt       DateTime    @updatedAt
-//   Transaksi      Transaksi[]
-// }
-
-// model Admin {
-//   id        Int         @id @default(autoincrement())
-//   uuid      String      @default("")
-//   username  String      @default("")
-//   password  String      @default("")
-//   email     String      @unique @default("")
-//   Transaksi Transaksi[]
-// }
 
 model Game {
   id               Int                @id @default(autoincrement())
@@ -82,11 +66,15 @@ model Game {
   deskripsi        String             @default("") @db.Text
   total_dibeli     Int                @default(0)
   genre            String             @default("")
+  Owned            Owned              @default(False)
   tahun_rilis      DateTime           @default(now())
   download_link    String             @default("")
   createdAt        DateTime           @default(now())
   updateAt         DateTime           @updatedAt
   Detail_Transaksi Detail_Transaksi[]
+  User             User?              @relation(fields: [userId], references: [id])
+  userId           Int?
+  ownedBy          User[]             @relation("OwnedGames")
 }
 
 model Transaksi {
@@ -96,7 +84,6 @@ model Transaksi {
   status            Status             @default(Belum_Lunas)
   metode_pembayaran Method             @default(QRIS)
   total_bayar       Int                @default(0)
-  // tanggal_transaksi DateTime           @default(now())
   createdAt         DateTime           @default(now())
   updateAt          DateTime           @updatedAt
   User              User?              @relation(fields: [userId], references: [id])
@@ -105,12 +92,12 @@ model Transaksi {
 }
 
 model Detail_Transaksi {
-  uuid        String     @default("")
-  id          Int        @id @default(autoincrement())
-  idTransaski Int?
-  transaksi   Transaksi? @relation(fields: [idTransaski], references: [id])
-  idGame      Int?
-  game        Game?      @relation(fields: [idGame], references: [id])
-  createdAt   DateTime   @default(now())
-  updateAt    DateTime   @updatedAt
+  uuid        String    @default("")
+  id          Int       @id @default(autoincrement())
+  idTransaksi Int
+  transaksi   Transaksi @relation(fields: [idTransaksi], references: [id])
+  idGame      Int
+  game        Game      @relation(fields: [idGame], references: [id])
+  createdAt   DateTime  @default(now())
+  updateAt    DateTime  @updatedAt
 }

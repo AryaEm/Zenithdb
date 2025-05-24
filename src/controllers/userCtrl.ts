@@ -15,7 +15,7 @@ export const getAllUsers = async (req: Request, res: Response) => {
             where: { username: { contains: search?.toString() || "" } }
         })
         return res.json({
-            status: 'gacorr',
+            status: true,
             data: allUsers,
             massege: 'Berhasil menampilkan semua user'
         }).status(200)
@@ -32,7 +32,6 @@ export const getAllUsers = async (req: Request, res: Response) => {
 
 export const createUser = async (req: Request, res: Response) => {
     try {
-        //mengambil data
         const { username, password, email, role, nomor_telp, jenis_kelamin } = req.body
         const uuid = uuidv4()
 
@@ -41,23 +40,33 @@ export const createUser = async (req: Request, res: Response) => {
             return res.status(200).json({ status: false, message: 'Email already registered' });
         }
 
-        //proses save data
+        // Berikan default jika tidak ada nomor_telp dan jenis_kelamin
+        const nomorTelpValue = nomor_telp ?? ""
+        const jenisKelaminValue = jenis_kelamin ?? null
+
         const newUser = await prisma.user.create({
-            data: { uuid, username, password: md5(password), email, role, nomor_telp, jenis_kelamin }
+            data: {
+                uuid,
+                username,
+                password: md5(password),
+                email,
+                role,
+                nomor_telp: nomorTelpValue,
+                jenis_kelamin: jenisKelaminValue,
+                profil_picture: "", // default kosong, bisa update nanti
+            }
         })
 
-        return res.json({
+        return res.status(200).json({
             status: true,
             data: newUser,
             message: 'New User has created'
-        }).status(200)
+        })
     } catch (error) {
-        return res
-            .json({
-                status: false,
-                message: `error bang ${error}`
-            })
-            .status(400)
+        return res.status(200).json({
+            status: false,
+            message: `error bang ${error}`
+        })
     }
 }
 
@@ -231,7 +240,7 @@ export const registerUser = async (req: Request, res: Response) => {
                 username,
                 email,
                 password: md5(password),
-                nomor_telp: "",
+                nomor_telp: "", 
                 jenis_kelamin: "Laki_laki",
                 role: 'Pelanggan'
             }

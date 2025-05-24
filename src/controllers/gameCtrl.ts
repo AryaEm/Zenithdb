@@ -6,39 +6,14 @@ import fs from 'fs'
 
 const prisma = new PrismaClient({ errorFormat: "pretty" });
 
-export const getAllGames = async (req: Request, res: Response) => {
+export const getGames = async (req: Request, res: Response) => {
     try {
-        const { search, latest } = req.query //input
-
-        const allGames = await prisma.game.findMany({
-            where:
-            {
-                name: {
-                    contains: search?.toString() || ""
-                }
-            },
-            orderBy: latest ? { createdAt: 'desc' } : undefined,
-            take: latest ? 3 : undefined, 
-            select: {
-                id: true,
-                uuid: true,
-                name: true,
-                gambar: true,
-                video: true,
-                developer: true,
-                harga: true,
-                deskripsi: true,
-                total_dibeli: true,
-                genre: true,
-                tahun_rilis: true,
-                createdAt: true,
-                updateAt: true,
-            }
-        })
-        return res.json({ //output                
+        const { search } = req.query
+        const allGames = await prisma.game.findMany()
+        return res.json({
             status: true,
             data: allGames,
-            massege: 'Berhasil menampilkan game'
+            massege: 'Berhasil menampilkan semua game'
         }).status(200)
     } catch (error) {
         return res
@@ -50,9 +25,73 @@ export const getAllGames = async (req: Request, res: Response) => {
     }
 }
 
+
+export const getAllGames = async (req: Request, res: Response) => {
+    try {
+        const user = (req as any).user;
+
+        console.log("USER: ", user);
+
+        // Handle jika user tidak ditemukan
+        if (!user || !user.id) {
+            return res.status(401).json({
+                status: false,
+                message: "User not authenticated"
+            });
+        }
+
+        // Ambil semua transaksi yang sudah lunas milik user saat ini
+        const userTransactions = await prisma.transaksi.findMany({
+            where: {
+                userId: Number(user.id),
+                status: "Lunas"
+            },
+            include: {
+                Detail_Transaksi: {
+                    include: {
+                        game: true
+                    }
+                }
+            }
+        });
+
+        const ownedGameIds = userTransactions.flatMap((transaction) =>
+            transaction.Detail_Transaksi.map((detail) => detail.idGame)
+        );
+
+        console.log("Owned Game IDs: ", ownedGameIds);
+
+        const allGames = await prisma.game.findMany();
+
+        console.log("All Games: ", allGames.map(g => g.id));
+
+        const gamesWithOwnership = allGames.map(({ Owned, ...game }) => ({
+            ...game,
+            isOwned: ownedGameIds.includes(game.id)
+        }));
+
+        return res.status(200).json({
+            status: true,
+            data: gamesWithOwnership
+        });
+
+    } catch (error) {
+        console.error("Error fetching games:", error);
+        return res.status(500).json({
+            status: false,
+            message: "Terjadi kesalahan saat mengambil data game."
+        });
+    }
+};
+
+
+
+
 export const createGame = async (req: Request, res: Response) => {
     try {
         //mengambil data
+        console.log('File:', req.file); // debug apakah file berhasil terupload
+
         const { name, developer, harga, genre, deskripsi, download_link } = req.body
         const uuid = uuidv4()
 
@@ -64,18 +103,17 @@ export const createGame = async (req: Request, res: Response) => {
             data: { uuid, name, developer, harga: Number(harga), genre, deskripsi, download_link, gambar: filename }
         })
 
-        return res.json({
+        return res.status(200).json({
             status: true,
             data: newGame,
             message: 'New Game has created'
-        }).status(200)
+        })
     } catch (error) {
-        return res
+        return res.status(400)
             .json({
                 status: false,
                 message: `error bang ${error}`
             })
-            .status(400)
     }
 }
 
@@ -172,37 +210,41 @@ export const editGame = async (req: Request, res: Response) => {
 //     }
 // }
 
-export const deleteGeme = async (req: Request, res: Response) => {
+export const deleteGame = async (req: Request, res: Response) => {
     try {
-        const { id } = req.params //Memilih id dari menu yang ingin di hapus melalui parameter
+        const { id } = req.params;
+        const gameId = Number(id);
 
-        // Mencari menu berdasarkan id
-        const findGame = await prisma.game.findFirst({ where: { id: Number(id) } });
+        const findGame = await prisma.game.findUnique({ where: { id: gameId } });
         if (!findGame) {
             return res.status(404).json({
                 status: false,
-                message: "Game tidak ditemukan"
+                message: "Game tidak ditemukan",
             });
         }
 
-        // Menghapus menu
-        await prisma.game.delete({
-            where: { id: Number(id) }
+        // Hapus dulu semua detail transaksi yang terkait
+        await prisma.detail_Transaksi.deleteMany({
+            where: { idGame: gameId },
         });
 
-        return res.json({
+        // Baru hapus game-nya
+        await prisma.game.delete({
+            where: { id: gameId },
+        });
+
+        return res.status(200).json({
             status: true,
-            message: 'Game telah dihapus'
-        }).status(200);
-    } catch (error) {
-        return res
-            .json({
-                status: false,
-                message: `Error saat menghapus Game ${error}`
-            })
-            .status(400);
+            message: "Game telah dihapus",
+        });
+    } catch (error: any) {
+        return res.status(400).json({
+            status: false,
+            message: `Error saat menghapus Game: ${error.message || error}`,
+        });
     }
-}
+};
+
 
 export const getTotalGames = async (req: Request, res: Response) => {
     try {
@@ -393,11 +435,11 @@ export const getQuickAccess = async (req: Request, res: Response) => {
                 updateAt: true,
             }
         })
-        return res.json({
+        return res.status(200).json({
             status: true,
             data: Quickaccess,
             massege: 'Berhasil menampilkan game'
-        }).status(200)
+        })
 
     } catch (error: unknown) {
         if (error instanceof Error) {

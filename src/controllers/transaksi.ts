@@ -32,79 +32,138 @@ export const getAllOrders = async (request: Request, response: Response) => {
     }
 }
 
-export const createOrder = async (request: Request, response: Response) => {
+export const createOrder = async (req: Request, res: Response) => {
     try {
-        const { metode_pembayaran, status, detail_transaksi } = request.body;
-        const customer = (request as any).userTransaction;
-        const user = request.body.user;
+        const { metode_pembayaran, status, detail_transaksi } = req.body;
 
-        // console.log(user)
-        const uuid = uuidv4();
-
-        let total_bayar = 0;
-
-        for (let index = 0; index < detail_transaksi.length; index++) {
-            const { gameId, quantity = 1 } = detail_transaksi[index]; 
-
-            // Cari game berdasarkan gameId
-            const detailGame = await prisma.game.findFirst({
-                where: {
-                    id: gameId
-                }
-            });
-            if (!detailGame) {
-                return response.status(200).json({
-                    status: false,
-                    message: `Game with id ${gameId} is not found`
-                });
-            }
-
-            // Tambahkan harga * quantity ke total_bayar
-            total_bayar += detailGame.harga * quantity;
+        // User diambil dari middleware/auth, misal user sudah ada di req.user
+        const user = (req as any).user;
+        if (!user || !user.id) {
+            return res.status(401).json({ status: false, message: "Unauthorized" });
         }
 
-        // Buat data order baru di tabel transaksi
-        const newOrder = await prisma.transaksi.create({
-            data: { uuid, customer, total_bayar, metode_pembayaran, status, userId: user.id }
+        const uuid = uuidv4();
+        let total_bayar = 0;
+
+        // Ambil list gameId dari request
+        const requestedGameIds = detail_transaksi.map((d: any) => d.gameId);
+
+        // Cek game yang sudah dimiliki user lewat transaksi yang sudah ada
+        // Cari detail transaksi dengan game yg sudah dibeli user
+        const ownedDetails = await prisma.detail_Transaksi.findMany({
+            where: {
+                transaksi: {
+                    userId: user.id,
+                    status: "Lunas" // pastikan transaksi sudah lunas (optional, bisa disesuaikan)
+                },
+                idGame: { in: requestedGameIds }
+            },
+            select: { idGame: true }
         });
 
-        // Buat detail transaksi dan update total_dibeli untuk setiap game
-        for (let index = 0; index < detail_transaksi.length; index++) {
-            const { gameId, quantity = 1 } = detail_transaksi[index];
+        const ownedGameIds = ownedDetails.map(d => d.idGame);
 
-            // Buat detail transaksi
+        // Kalau ada game yang sudah owned, return error
+        const alreadyOwned = requestedGameIds.find((id: number) => ownedGameIds.includes(id));
+        if (alreadyOwned) {
+            return res.status(400).json({
+                status: false,
+                message: `User already owns the game with id ${alreadyOwned}`
+            });
+        }
+
+        // Hitung total bayar dari harga tiap game
+        for (const detail of detail_transaksi) {
+            const game = await prisma.game.findUnique({ where: { id: detail.gameId } });
+            if (!game) {
+                return res.status(404).json({ status: false, message: `Game with id ${detail.gameId} not found` });
+            }
+            total_bayar += game.harga;
+        }
+
+        // Buat transaksi baru
+        const newOrder = await prisma.transaksi.create({
+            data: {
+                uuid,
+                customer: user.username || user.email || "Customer",
+                total_bayar,
+                metode_pembayaran,
+                status, // bisa "Belum_Lunas" atau "Lunas"
+                userId: user.id
+            }
+        });
+
+        // Buat detail transaksi dan update owned game
+        for (const detail of detail_transaksi) {
             await prisma.detail_Transaksi.create({
                 data: {
                     uuid: uuidv4(),
-                    idTransaski: newOrder.id,
-                    idGame: Number(gameId)
+                    idTransaksi: newOrder.id,
+                    idGame: detail.gameId
                 }
             });
 
-            // Update total_dibeli untuk setiap game
             await prisma.game.update({
-                where: {
-                    id: gameId
-                },
+                where: { id: detail.gameId },
                 data: {
-                    total_dibeli: { increment: quantity } // Menambah total_dibeli sesuai quantity
+                    Owned: "True",
+                    userId: user.id,   // isi userId di game dengan pembeli
                 }
             });
         }
 
-        // Response sukses
-        return response.status(200).json({
+        return res.status(200).json({
             status: true,
             data: newOrder,
-            message: `New Order has been created`
+            message: "Order successful"
         });
-    } catch (error) {
-        return response.status(400).json({
+
+    } catch (error: any) {
+        return res.status(400).json({
             status: false,
-            message: `There is an error. ${error}`
+            message: `Error: ${error.message}`
         });
     }
 };
+
+export const getOwnedGames = async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+
+    if (!user || !user.id) {
+      return res.status(401).json({ status: false, message: "Unauthorized" });
+    }
+
+    const transactions = await prisma.transaksi.findMany({
+      where: {
+        userId: Number(user.id),
+        status: "Lunas",
+      },
+      include: {
+        Detail_Transaksi: {
+          include: {
+            game: true,
+          },
+        },
+      },
+    });
+
+    const ownedGames = transactions.flatMap((tx) =>
+      tx.Detail_Transaksi.map((detail) => detail.game).filter((game) => !!game)
+    );
+
+    return res.status(200).json({
+      status: true,
+      data: ownedGames,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      status: false,
+      message: `Failed to get owned games: ${error.message}`,
+    });
+  }
+};
+
 
 
 export const updateStatusOrder = async (req: Request, res: Response) => {
@@ -151,7 +210,7 @@ export const deleteOrder = async (request: Request, response: Response) => {
             .status(200)
             .json({ status: false, message: `Order is not found` })
 
-        let deleteOrderList = await prisma.detail_Transaksi.deleteMany({ where: { idTransaski: Number(id) } })
+        let deleteOrderList = await prisma.detail_Transaksi.deleteMany({ where: { idTransaksi: Number(id) } })
         let deleteOrder = await prisma.transaksi.delete({ where: { id: Number(id) } })
 
 

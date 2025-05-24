@@ -7,8 +7,8 @@ const addDataUser = Joi.object({
     username: Joi.string().required(),
     email: Joi.string().email().required(),
     password: Joi.string().min(8).required(),
-    nomor_telp: Joi.string().optional(),
-    jenis_kelamin: Joi.string().valid('Laki_laki', 'Perempuan').optional(),
+    nomor_telp: Joi.string().optional().allow(null, ""),
+    jenis_kelamin: Joi.string().valid('Laki_laki', 'Perempuan').optional().allow(null, ""),
     role: Joi.string().valid('Admin', 'Pelanggan').required(),
     profile_picture: Joi.allow().optional(),
     // user: Joi.required()
@@ -22,7 +22,7 @@ const editDataUser = Joi.object({
     role: Joi.string().valid('Admin', 'Pelanggan').optional(),
     jenis_kelamin: Joi.string().valid('Laki_laki', 'Perempuan').optional(),
     profile_picture: Joi.allow().optional(),
-    user: Joi.required()
+    // user: Joi.required()
 })
 
 

@@ -8,22 +8,36 @@ const prisma = new PrismaClient({ errorFormat: "pretty" });
 
 export const getGames = async (req: Request, res: Response) => {
     try {
-        const { search } = req.query
-        const allGames = await prisma.game.findMany()
-        return res.json({
-            status: true,
-            data: allGames,
-            massege: 'Berhasil menampilkan semua game'
-        }).status(200)
-    } catch (error) {
-        return res
-            .json({
-                status: false,
-                message: `Error bang ${error}`
+        const { latest } = req.query
+
+        let games
+
+        if (latest === 'true') {
+            // Ambil 3 game terbaru berdasarkan tanggal pembuatan
+            games = await prisma.game.findMany({
+                orderBy: {
+                    createdAt: 'desc'
+                },
+                take: 3
             })
-            .status(400)
+        } else { 
+            // Ambil semua game
+            games = await prisma.game.findMany()
+        }
+
+        return res.status(200).json({
+            status: true,
+            data: games,
+            message: 'Berhasil menampilkan game'
+        })
+    } catch (error) {
+        return res.status(400).json({
+            status: false,
+            message: `Error bang ${error}`
+        })
     }
 }
+
 
 
 export const getAllGames = async (req: Request, res: Response) => {
@@ -90,7 +104,7 @@ export const getAllGames = async (req: Request, res: Response) => {
 export const createGame = async (req: Request, res: Response) => {
     try {
         //mengambil data
-        console.log('File:', req.file); // debug apakah file berhasil terupload
+        // console.log('File:', req.file); // debug apakah file berhasil terupload
 
         const { name, developer, harga, genre, deskripsi, download_link } = req.body
         const uuid = uuidv4()

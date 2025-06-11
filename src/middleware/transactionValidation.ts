@@ -8,7 +8,7 @@ const orderListSchema = Joi.object({
 
 const addDataSchema = Joi.object({
     customer: Joi.string().optional(),
-    metode_pembayaran: Joi.string().valid("Transfer_bank", "QRIS").required(),
+    metode_pembayaran: Joi.string().valid("GOPAY", "QRIS", "DANA").required(),
     status: Joi.string().valid("Belum_Lunas", "Lunas").required(),
     idUser: Joi.number().optional(),
     detail_transaksi: Joi.array().items(orderListSchema).min(1).required(),

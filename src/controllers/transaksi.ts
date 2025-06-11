@@ -4,33 +4,45 @@ import { v4 as uuidv4 } from "uuid";
 
 const prisma = new PrismaClient({ errorFormat: "pretty" });
 
-export const getAllOrders = async (request: Request, response: Response) => {
+export const getAllOrders = async (req: Request, res: Response) => {
     try {
-        const { search } = request.query
+        const user = (req as any).user;
 
-        const allOrders = await prisma.transaksi.findMany({
+        if (!user || !user.id) {
+            return res.status(401).json({ status: false, message: "Unauthorized" });
+        }
+
+        // Ambil semua transaksi milik user (boleh Lunas atau Belum_Lunas, atau filter sesuai kebutuhan)
+        const orders = await prisma.transaksi.findMany({
             where: {
-                OR: [
-                    { customer: { contains: search?.toString() || "" } }]
+                userId: Number(user.id),
             },
-            orderBy: { createdAt: "desc" },
-            include: { Detail_Transaksi: true }
-        })
+            orderBy: {
+                createdAt: 'desc', // urutkan dari yang terbaru
+            },
+            include: {
+                Detail_Transaksi: {
+                    include: {
+                        game: true, // sertakan data game dari tiap detail transaksi
+                    },
+                },
+            },
+        });
 
-        return response.json({
+        return res.status(200).json({
             status: true,
-            data: allOrders,
-            message: `Order list has retrieved`
-        }).status(200)
-    } catch (error) {
-        return response
-            .json({
-                status: false,
-                message: `There is an error. ${error}`
-            })
-            .status(400)
+            data: orders,
+            message: "User's transactions fetched successfully",
+        });
+
+    } catch (error: any) {
+        return res.status(500).json({
+            status: false,
+            message: `Error: ${error.message}`,
+        });
     }
-}
+};
+
 
 export const createOrder = async (req: Request, res: Response) => {
     try {
@@ -127,41 +139,41 @@ export const createOrder = async (req: Request, res: Response) => {
 };
 
 export const getOwnedGames = async (req: Request, res: Response) => {
-  try {
-    const user = (req as any).user;
+    try {
+        const user = (req as any).user;
 
-    if (!user || !user.id) {
-      return res.status(401).json({ status: false, message: "Unauthorized" });
+        if (!user || !user.id) {
+            return res.status(401).json({ status: false, message: "Unauthorized" });
+        }
+
+        const transactions = await prisma.transaksi.findMany({
+            where: {
+                userId: Number(user.id),
+                status: "Lunas",
+            },
+            include: {
+                Detail_Transaksi: {
+                    include: {
+                        game: true,
+                    },
+                },
+            },
+        });
+
+        const ownedGames = transactions.flatMap((tx) =>
+            tx.Detail_Transaksi.map((detail) => detail.game).filter((game) => !!game)
+        );
+
+        return res.status(200).json({
+            status: true,
+            data: ownedGames,
+        });
+    } catch (error: any) {
+        return res.status(500).json({
+            status: false,
+            message: `Failed to get owned games: ${error.message}`,
+        });
     }
-
-    const transactions = await prisma.transaksi.findMany({
-      where: {
-        userId: Number(user.id),
-        status: "Lunas",
-      },
-      include: {
-        Detail_Transaksi: {
-          include: {
-            game: true,
-          },
-        },
-      },
-    });
-
-    const ownedGames = transactions.flatMap((tx) =>
-      tx.Detail_Transaksi.map((detail) => detail.game).filter((game) => !!game)
-    );
-
-    return res.status(200).json({
-      status: true,
-      data: ownedGames,
-    });
-  } catch (error: any) {
-    return res.status(500).json({
-      status: false,
-      message: `Failed to get owned games: ${error.message}`,
-    });
-  }
 };
 
 

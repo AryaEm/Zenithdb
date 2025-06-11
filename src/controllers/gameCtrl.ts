@@ -8,35 +8,40 @@ const prisma = new PrismaClient({ errorFormat: "pretty" });
 
 export const getGames = async (req: Request, res: Response) => {
     try {
-        const { latest } = req.query
+        const { latest } = req.query;
 
-        let games
+        // Ambil semua game dengan jumlah pembelian (count Detail_Transaksi)
+        const games = await prisma.game.findMany({
+            orderBy: latest === 'true' ? { createdAt: 'desc' } : undefined,
+            take: latest === 'true' ? 3 : undefined,
+            include: {
+                _count: {
+                    select: {
+                        Detail_Transaksi: true
+                    }
+                }
+            }
+        });
 
-        if (latest === 'true') {
-            // Ambil 3 game terbaru berdasarkan tanggal pembuatan
-            games = await prisma.game.findMany({
-                orderBy: {
-                    createdAt: 'desc'
-                },
-                take: 3
-            })
-        } else { 
-            // Ambil semua game
-            games = await prisma.game.findMany()
-        }
+        // Format: masukkan total_dibeli dari jumlah Detail_Transaksi
+        const formattedGames = games.map(game => ({
+            ...game,
+            total_dibeli: game._count.Detail_Transaksi
+        }));
 
         return res.status(200).json({
             status: true,
-            data: games,
+            data: formattedGames,
             message: 'Berhasil menampilkan game'
-        })
-    } catch (error) {
+        });
+    } catch (error: any) {
         return res.status(400).json({
             status: false,
-            message: `Error bang ${error}`
-        })
+            message: `Error bang ${error.message}`
+        });
     }
-}
+};
+
 
 
 
@@ -333,52 +338,52 @@ export const getGameById = async (req: Request, res: Response) => {
 
 export const getMostPurchasedGame = async (req: Request, res: Response) => {
     try {
-        // Ambil game yang diurutkan berdasarkan total_dibeli (desc), dan limit hasilnya sesuai kebutuhan
-        const mostPurchasedGames = await prisma.game.findMany({
-            orderBy: {
-                total_dibeli: 'desc' // Urutkan berdasarkan total_dibeli tertinggi
-            },
-            take: 10, // Ambil 10 game teratas atau sesuai kebutuhan
-            select: {
-                id: true,
-                uuid: true,
-                name: true,
-                gambar: true,
-                video: true,
-                developer: true,
-                harga: true,
-                deskripsi: true,
-                total_dibeli: true,
-                genre: true,
-                tahun_rilis: true,
-                createdAt: true,
-                updateAt: true,
-                // download_link tidak disertakan
-            },
+        // Ambil semua game + hitung total pembeliannya (jumlah detail transaksi)
+        const games = await prisma.game.findMany({
+            include: {
+                _count: {
+                    select: {
+                        Detail_Transaksi: true
+                    }
+                }
+            }
         });
 
-        // Cek apakah ada game yang ditemukan
-        if (mostPurchasedGames.length === 0) {
-            return res.status(200).json({
-                status: true,
-                message: 'No games found',
-                data: []
-            });
-        }
+        // Masukkan total_dibeli dari hasil count
+        const formattedGames = games.map(game => ({
+            id: game.id,
+            uuid: game.uuid,
+            name: game.name,
+            gambar: game.gambar,
+            video: game.video,
+            developer: game.developer,
+            harga: game.harga,
+            deskripsi: game.deskripsi,
+            genre: game.genre,
+            tahun_rilis: game.tahun_rilis,
+            createdAt: game.createdAt,
+            updateAt: game.updateAt,
+            total_dibeli: game._count.Detail_Transaksi
+        }));
 
-        // Return response sukses dengan data game yang diurutkan
+        // Urutkan berdasarkan total_dibeli terbesar, ambil 10 teratas
+        const sortedGames = formattedGames
+            .sort((a, b) => b.total_dibeli - a.total_dibeli)
+            .slice(0, 10);
+
         return res.status(200).json({
             status: true,
             message: 'Most purchased games retrieved successfully',
-            data: mostPurchasedGames
+            data: sortedGames
         });
-    } catch (error) {
+    } catch (error: any) {
         return res.status(500).json({
             status: false,
-            message: `Error retrieving most purchased games: ${error}`
+            message: `Error retrieving most purchased games: ${error.message}`
         });
     }
 };
+
 
 export const getPurchasedGame = async (req: Request, res: Response) => {
     try {
@@ -464,3 +469,62 @@ export const getQuickAccess = async (req: Request, res: Response) => {
         }
     }
 }
+
+export const getMonthlyGameSalesStat = async (req: Request, res: Response) => {
+    try {
+        const now = new Date();
+
+        // Bulan ini
+        const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfThisMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+        // Bulan lalu
+        const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+        // Hitung total pembelian game bulan ini
+        const totalThisMonth = await prisma.detail_Transaksi.count({
+            where: {
+                createdAt: {
+                    gte: startOfThisMonth,
+                    lte: endOfThisMonth
+                }
+            }
+        });
+
+        // Hitung total pembelian game bulan lalu
+        const totalLastMonth = await prisma.detail_Transaksi.count({
+            where: {
+                createdAt: {
+                    gte: startOfLastMonth,
+                    lte: endOfLastMonth
+                }
+            }
+        });
+
+        // Hitung persentase perubahan
+        let percentChange = 0;
+        if (totalLastMonth === 0 && totalThisMonth > 0) {
+            percentChange = 100;
+        } else if (totalLastMonth === 0 && totalThisMonth === 0) {
+            percentChange = 0;
+        } else {
+            percentChange = ((totalThisMonth - totalLastMonth) / totalLastMonth) * 100;
+        }
+
+        return res.status(200).json({
+            status: true,
+            data: {
+                totalThisMonth,
+                totalLastMonth,
+                percentChange: parseFloat(percentChange.toFixed(2)),
+                message: percentChange >= 0 ? "Naik" : "Turun"
+            }
+        });
+    } catch (error: any) {
+        return res.status(500).json({
+            status: false,
+            message: `Error getting monthly stats: ${error.message}`
+        });
+    }
+};

@@ -8,10 +8,14 @@ const prisma = new PrismaClient({ errorFormat: "pretty" });
 
 export const getGames = async (req: Request, res: Response) => {
     try {
-        const { latest } = req.query;
+        const { search, latest } = req.query;
 
-        // Ambil semua game dengan jumlah pembelian (count Detail_Transaksi)
         const games = await prisma.game.findMany({
+            where: search ? {
+                name: {
+                    contains: search.toString()
+                }
+            } : undefined,
             orderBy: latest === 'true' ? { createdAt: 'desc' } : undefined,
             take: latest === 'true' ? 3 : undefined,
             include: {
@@ -23,7 +27,6 @@ export const getGames = async (req: Request, res: Response) => {
             }
         });
 
-        // Format: masukkan total_dibeli dari jumlah Detail_Transaksi
         const formattedGames = games.map(game => ({
             ...game,
             total_dibeli: game._count.Detail_Transaksi
@@ -41,6 +44,7 @@ export const getGames = async (req: Request, res: Response) => {
         });
     }
 };
+
 
 
 
